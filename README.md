@@ -43,6 +43,34 @@ The server runs on stdio transport (standard input/output):
 node timeserver.js
 ```
 
+#### HTTP transports
+
+Two HTTP-based transports are available:
+
+1. **Streamable HTTP** (recommended, MCP spec `2025-03-26`) — `timeserver-http.js`:
+
+```bash
+npm run start:http   # node timeserver-http.js, port from $PORT (default 3000)
+```
+
+Single endpoint `/mcp`:
+- `POST /mcp` — JSON-RPC messages (`initialize`, `tools/list`, `tools/call`, ...)
+- `GET /mcp` — optional server-side SSE stream for the session
+- `DELETE /mcp` — terminate the session
+
+The session id is passed via the `Mcp-Session-Id` header; the server supports multiple concurrent sessions. Quick smoke test:
+
+```bash
+npm run start:http &
+npm run test:http
+```
+
+2. **Legacy HTTP + SSE** (deprecated MCP spec `2024-11-05`) — kept for older clients in `timeserver-sse.js`:
+
+```bash
+npm run start:sse    # GET /mcp opens the SSE stream, POST /messages?sessionId=... sends messages
+```
+
 
 To run the server, you need to add it to your MCP configuration. For example, if you are using Claude Desktop, you can do this by modifying the `claude_desktop_config.json` file, for some reason Claude might not recognize the server untill you reinstall the claude desktop app, so you might need to do that after adding the server.
 ### Example Configuration for Claude Desktop
