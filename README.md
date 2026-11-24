@@ -65,10 +65,27 @@ npm run start:http &
 npm run test:http
 ```
 
+**API key authentication (optional):** set the `MCP_API_KEY` environment variable and clients must send a standard bearer token:
+
+```bash
+MCP_API_KEY=your-secret-key npm run start:http
+```
+
+```http
+POST /mcp HTTP/1.1
+Authorization: Bearer your-secret-key
+Mcp-Session-Id: <session-id>
+Content-Type: application/json
+Accept: application/json, text/event-stream
+```
+
+If `MCP_API_KEY` is not set, the server runs without authentication (a warning is printed at startup). Requests with a missing or wrong token get `401 Unauthorized`. For convenience, `X-API-Key: <key>` and `?api_key=<key>` (query) are also accepted — the query form is handy for browser-based `GET /mcp` streams. `/health` is always public.
+
 2. **Legacy HTTP + SSE** (deprecated MCP spec `2024-11-05`) — kept for older clients in `timeserver-sse.js`:
 
 ```bash
 npm run start:sse    # GET /mcp opens the SSE stream, POST /messages?sessionId=... sends messages
+MCP_API_KEY=your-secret-key npm run start:sse   # same Bearer auth for the SSE transport
 ```
 
 

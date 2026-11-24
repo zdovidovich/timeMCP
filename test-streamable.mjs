@@ -4,12 +4,14 @@
 // Выполняет полный цикл: initialize -> notifications/initialized -> tools/list -> tools/call -> DELETE.
 
 const BASE = process.env.MCP_URL || "http://127.0.0.1:3000/mcp";
+const API_KEY = process.env.MCP_API_KEY || "";
 
 function headers(sessionId) {
   const h = {
     "Content-Type": "application/json",
     Accept: "application/json, text/event-stream",
   };
+  if (API_KEY) h["Authorization"] = `Bearer ${API_KEY}`;
   if (sessionId) h["Mcp-Session-Id"] = sessionId;
   return h;
 }
@@ -117,5 +119,30 @@ res = await fetch(BASE, {
   body: JSON.stringify({ jsonrpc: "2.0", id: 6, method: "tools/list" }),
 });
 console.log("AFTER_DELETE_STATUS", res.status);
+
+// 9. Проверка аутентификации (если задан MCP_API_KEY)
+if (API_KEY) {
+  // без токена -> 401
+  const noAuthHeaders = headers();
+  delete noAuthHeaders["Authorization"];
+  res = await fetch(BASE, {
+    method: "POST",
+    headers: noAuthHeaders,
+    body: JSON.stringify({ jsonrpc: "2.0", id: 7, method: "initialize", params: {} }),
+  });
+  console.log("NO_AUTH_STATUS", res.status);
+  if (res.status !== 401) throw new Error("Expected 401 without token!");
+
+  // с неверным токеном -> 401
+  res = await fetch(BASE, {
+    method: "POST",
+    headers: { ...headers(), Authorization: "Bearer wrong-key-123" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 8, method: "initialize", params: {} }),
+  });
+  console.log("BAD_AUTH_STATUS", res.status);
+  if (res.status !== 401) throw new Error("Expected 401 with wrong token!");
+} else {
+  console.log("AUTH_TESTS SKIPPED (MCP_API_KEY not set)");
+}
 
 console.log("ALL OK");

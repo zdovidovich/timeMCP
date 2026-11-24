@@ -11,6 +11,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
 import cors from "cors";
 import { registerTimeTools } from "./timeserver-streamable-tools.js";
+import { bearerAuth, authStatus, API_KEY_ENV } from "./auth.js";
 
 class TimeServerSSE {
   constructor() {
@@ -35,14 +36,22 @@ class TimeServerSSE {
   }
 
   setupExpress() {
-    // Enable CORS for all routes
-    this.app.use(cors());
+    // Enable CORS for all routes (Authorization должен быть разрешён для Bearer-токена)
+    this.app.use(
+      cors({
+        origin: "*",
+        allowedHeaders: ["Content-Type", "Accept", "Authorization", "X-API-Key"],
+      })
+    );
     this.app.use(express.json());
 
-    // Health check endpoint
+    // Health check endpoint (всегда доступен без ключа)
     this.app.get("/health", (req, res) => {
-      res.json({ status: "healthy", timestamp: new Date().toISOString(), transport: "sse" });
+      res.json({ status: "healthy", timestamp: new Date().toISOString(), transport: "sse", auth: authStatus() });
     });
+
+    // Аутентификация по API-ключу: Authorization: Bearer <MCP_API_KEY>
+    this.app.use(bearerAuth);
   }
 
   async run() {
@@ -71,6 +80,11 @@ class TimeServerSSE {
       console.log(`Health check: http://0.0.0.0:${this.port}/health`);
       console.log(`SSE endpoint: http://0.0.0.0:${this.port}/mcp`);
       console.log(`POST messages: http://0.0.0.0:${this.port}/messages?sessionId=...`);
+      console.log(
+        authStatus() === "enabled"
+          ? `Auth: REQUIRED (Authorization: Bearer <${API_KEY_ENV}>)`
+          : `Auth: DISABLED (set ${API_KEY_ENV} to require an API key)`
+      );
     });
   }
 }
