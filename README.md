@@ -43,6 +43,51 @@ The server runs on stdio transport (standard input/output):
 node timeserver.js
 ```
 
+#### HTTP transports
+
+Two HTTP-based transports are available:
+
+1. **Streamable HTTP** (recommended, MCP spec `2025-03-26`) — `timeserver-http.js`:
+
+```bash
+npm run start:http   # node timeserver-http.js, port from $PORT (default 3000)
+```
+
+Single endpoint `/mcp`:
+- `POST /mcp` — JSON-RPC messages (`initialize`, `tools/list`, `tools/call`, ...)
+- `GET /mcp` — optional server-side SSE stream for the session
+- `DELETE /mcp` — terminate the session
+
+The session id is passed via the `Mcp-Session-Id` header; the server supports multiple concurrent sessions. Quick smoke test:
+
+```bash
+npm run start:http &
+npm run test:http
+```
+
+**API key authentication (optional):** set the `MCP_API_KEY` environment variable and clients must send a standard bearer token:
+
+```bash
+MCP_API_KEY=your-secret-key npm run start:http
+```
+
+```http
+POST /mcp HTTP/1.1
+Authorization: Bearer your-secret-key
+Mcp-Session-Id: <session-id>
+Content-Type: application/json
+Accept: application/json, text/event-stream
+```
+
+If `MCP_API_KEY` is not set, the server runs without authentication (a warning is printed at startup). Requests with a missing or wrong token get `401 Unauthorized`. For convenience, `X-API-Key: <key>` and `?api_key=<key>` (query) are also accepted — the query form is handy for browser-based `GET /mcp` streams. `/health` is always public.
+
+2. **Legacy HTTP + SSE** (deprecated MCP spec `2024-11-05`) — kept for older clients in `timeserver-sse.js`:
+
+```bash
+npm run start:sse    # GET /mcp opens the SSE stream, POST /messages?sessionId=... sends messages
+MCP_API_KEY=your-secret-key npm run start:sse   # same Bearer auth for the SSE transport
+```
+
 
 To run the server, you need to add it to your MCP configuration. For example, if you are using Claude Desktop, you can do this by modifying the `claude_desktop_config.json` file, for some reason Claude might not recognize the server untill you reinstall the claude desktop app, so you might need to do that after adding the server.
 ### Example Configuration for Claude Desktop
